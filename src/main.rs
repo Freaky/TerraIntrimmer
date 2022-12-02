@@ -53,27 +53,19 @@ fn trim_notifications(data: &mut Json) -> Result<usize> {
         }
     }
     */
-    data.set("/gamestates/PavonisInteractive.TerraInvicta.TINotificationQueueState/0/Value/notificationSummaryQueue", Json::Array(vec![]))?;
-    data.set("/gamestates/PavonisInteractive.TerraInvicta.TINotificationQueueState/0/Value/timerNotificationQueue", Json::Array(vec![]))?;
-    // for obj in data
-    //     .get_mut("gamestates")?
-    //     .get_mut("PavonisInteractive.TerraInvicta.TINotificationQueueState")?
-    //     .as_array_mut()?
-    // {
-    //     if let Some(notifications) = obj.get_mut("Value") {
-    //         return Some(
-    //             clear_array(notifications, "notificationSummaryQueue")?
-    //                 + clear_array(notifications, "timerNotificationQueue")?,
-    //         );
-    //     }
-    // }
 
-    Ok(1)
+    Ok(clear_array("/gamestates/PavonisInteractive.TerraInvicta.TINotificationQueueState/0/Value/notificationSummaryQueue", data)? +
+        clear_array("/gamestates/PavonisInteractive.TerraInvicta.TINotificationQueueState/0/Value/timerNotificationQueue", data)?)
 }
 
-// fn clear_array(a: &mut Value, name: &str) -> Option<usize> {
-//     Some(a.get_mut(name)?.as_array_mut()?.drain(..).count())
-// }
+fn clear_array(path: &str, data: &mut Json) -> Result<usize> {
+    let len = match data.get(path)? {
+        Json::Array(a) => a.len(),
+        _ => return Err(eyre!("unexpected type at {}", path))
+    };
+    data.set(path, Json::Array(vec![]))?;
+    Ok(len)
+}
 
 fn safe_write(path: PathBuf, data: &[u8]) -> Result<()> {
     std::fs::OpenOptions::new()
