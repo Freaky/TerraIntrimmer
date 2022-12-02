@@ -20,7 +20,8 @@ fn trim_notifications(data: &mut Value) -> Option<usize> {
             "PavonisInteractive.TerraInvicta.TINotificationQueueState": [
                 {
                     "Value": {
-                        "notificationSummaryQueue": [{ ... }, ...] # trim this
+                        "notificationSummaryQueue": [{ ... }, ...], # trim this
+                        "timerNotificationQueue": [{ ... }] # and this
                     }
                 }
             ]
@@ -32,18 +33,19 @@ fn trim_notifications(data: &mut Value) -> Option<usize> {
         .get_mut("PavonisInteractive.TerraInvicta.TINotificationQueueState")?
         .as_array_mut()?
     {
-        if let Some(notifications) = obj
-            .get_mut("Value")
-            .and_then(|o| o.get_mut("notificationSummaryQueue"))
-            .and_then(|a| a.as_array_mut())
-        {
-            let count = notifications.len();
-            notifications.clear();
-            return Some(count);
+        if let Some(notifications) = obj.get_mut("Value") {
+            return Some(
+                clear_array(notifications, "notificationSummaryQueue")?
+                    + clear_array(notifications, "timerNotificationQueue")?,
+            );
         }
     }
 
     None
+}
+
+fn clear_array(a: &mut Value, name: &str) -> Option<usize> {
+    Some(a.get_mut(name)?.as_array_mut()?.drain(..).count())
 }
 
 fn safe_write(path: PathBuf, data: &[u8]) -> Result<()> {
