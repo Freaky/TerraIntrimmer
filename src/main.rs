@@ -1,13 +1,37 @@
-use eyre::{eyre, Result};
+#![windows_subsystem = "windows"]
+
+use eyre::{eyre, Result, WrapErr};
 use libflate::gzip::{Decoder, Encoder};
-use rfd::FileDialog;
+use native_dialog::{FileDialog, MessageDialog, MessageType};
 use serde_json::Value;
+
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
 fn main() -> Result<()> {
-    if let Some(path) = FileDialog::new().pick_file() {
-        trim_file(&path)?;
+    if let Some(path) = FileDialog::new().show_open_single_file()? {
+        match trim_file(&path) {
+            Ok(count) => {
+                MessageDialog::new()
+                    .set_type(MessageType::Info)
+                    .set_title("Success!")
+                    .set_text(&format!(
+                        "Trimmed {} notifications from {}",
+                        count,
+                        path.display()
+                    ))
+                    .show_alert()?;
+            }
+            Err(e) => {
+                MessageDialog::new()
+                    .set_type(MessageType::Error)
+                    .set_title("Failure!")
+                    .set_text(&format!("{:#}", e))
+                    .show_alert()?;
+
+                Err(e)?;
+            }
+        }
     }
 
     Ok(())
@@ -52,13 +76,15 @@ fn safe_write(path: PathBuf, data: &[u8]) -> Result<()> {
     std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
-        .open(path)?
-        .write_all(data)?;
+        .open(&path)
+        .wrap_err_with(|| format!("Can't open for writing: {}", path.display()))?
+        .write_all(data)
+        .wrap_err_with(|| format!("Write error to {}", path.display()))?;
 
     Ok(())
 }
 
-fn trim_file(path: &Path) -> Result<()> {
+fn trim_file(path: &Path) -> Result<usize> {
     let gzip = matches!(path.extension().and_then(|s| s.to_str()), Some("gz"));
 
     let data = if gzip {
@@ -98,5 +124,5 @@ fn trim_file(path: &Path) -> Result<()> {
         safe_write(path.with_file_name(name), output.as_bytes())?;
     };
 
-    Ok(())
+    Ok(trimmed)
 }
