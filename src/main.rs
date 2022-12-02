@@ -1,11 +1,10 @@
 #![windows_subsystem = "windows"]
 
 use eyre::{eyre, Result, WrapErr};
-use json5;
+use jsondata::Json;
 use json5format::{Json5Format,ParsedDocument};
 use libflate::gzip::{Decoder, Encoder};
 use native_dialog::{FileDialog, MessageDialog, MessageType};
-use serde_json::Value;
 
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -39,7 +38,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn trim_notifications(data: &mut Value) -> Option<usize> {
+fn trim_notifications(data: &mut Json) -> Result<usize> {
     /*
     {
         "gamestates" {
@@ -54,25 +53,27 @@ fn trim_notifications(data: &mut Value) -> Option<usize> {
         }
     }
     */
-    for obj in data
-        .get_mut("gamestates")?
-        .get_mut("PavonisInteractive.TerraInvicta.TINotificationQueueState")?
-        .as_array_mut()?
-    {
-        if let Some(notifications) = obj.get_mut("Value") {
-            return Some(
-                clear_array(notifications, "notificationSummaryQueue")?
-                    + clear_array(notifications, "timerNotificationQueue")?,
-            );
-        }
-    }
+    data.set("/gamestates/PavonisInteractive.TerraInvicta.TINotificationQueueState/0/Value/notificationSummaryQueue", Json::Array(vec![]))?;
+    data.set("/gamestates/PavonisInteractive.TerraInvicta.TINotificationQueueState/0/Value/timerNotificationQueue", Json::Array(vec![]))?;
+    // for obj in data
+    //     .get_mut("gamestates")?
+    //     .get_mut("PavonisInteractive.TerraInvicta.TINotificationQueueState")?
+    //     .as_array_mut()?
+    // {
+    //     if let Some(notifications) = obj.get_mut("Value") {
+    //         return Some(
+    //             clear_array(notifications, "notificationSummaryQueue")?
+    //                 + clear_array(notifications, "timerNotificationQueue")?,
+    //         );
+    //     }
+    // }
 
-    None
+    Ok(1)
 }
 
-fn clear_array(a: &mut Value, name: &str) -> Option<usize> {
-    Some(a.get_mut(name)?.as_array_mut()?.drain(..).count())
-}
+// fn clear_array(a: &mut Value, name: &str) -> Option<usize> {
+//     Some(a.get_mut(name)?.as_array_mut()?.drain(..).count())
+// }
 
 fn safe_write(path: PathBuf, data: &[u8]) -> Result<()> {
     std::fs::OpenOptions::new()
@@ -97,10 +98,9 @@ fn trim_file(path: &Path) -> Result<usize> {
         std::fs::read_to_string(path)
     }?;
 
-    let mut data: Value = json5::from_str(&data)?;
+    let mut data: Json = data.parse()?;
 
-    let trimmed =
-        trim_notifications(&mut data).ok_or(eyre!("Couldn't find notifications to trim"))?;
+    let trimmed = trim_notifications(&mut data)?;
 
     if trimmed == 0 {
         return Err(eyre!("No notifications trimmed"));
@@ -112,7 +112,7 @@ fn trim_file(path: &Path) -> Result<usize> {
         .to_string_lossy()
         .to_string();
 
-    let output = json5::to_string(&data)?;
+    let output = data.to_string();
     let parsed = ParsedDocument::from_str(&output, None)?;
     let output = Json5Format::with_options(Default::default())?.to_utf8(&parsed)?;
 
