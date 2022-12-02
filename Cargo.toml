@@ -8,6 +8,6 @@ edition = "2021"
 [dependencies]
 eyre = "0.6.8"
 json5format = "0.2.6"
-jsondata = "0.8.1"
+jsondata = { git = "https://github.com/Freaky/jsondata.git", branch = "fix-float-infinity" }
 libflate = "1.2.0"
 native-dialog = { version = "0.6.3", features = ["windows_dpi_awareness"] }

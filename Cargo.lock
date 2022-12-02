@@ -224,8 +224,7 @@ dependencies = [
 [[package]]
 name = "jsondata"
 version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbd42b0cf01d68dde1d6418a056528a83460b3d511bac110d252807ee561089d"
+source = "git+https://github.com/Freaky/jsondata.git?branch=fix-float-infinity#2a02b22cf62a30b374a98add6511c36f50ff1ca5"
 dependencies = [
  "jsondata-derive",
  "lazy_static",
@@ -235,8 +234,7 @@ dependencies = [
 [[package]]
 name = "jsondata-derive"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c10e5a8fd10d69269bd7414214a4591b4ece7ec9c6392b6170fb5045aebfc17c"
+source = "git+https://github.com/Freaky/jsondata.git?branch=fix-float-infinity#2a02b22cf62a30b374a98add6511c36f50ff1ca5"
 dependencies = [
  "heck",
  "proc-macro-error",
