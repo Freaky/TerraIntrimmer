@@ -1,8 +1,6 @@
 #![windows_subsystem = "windows"]
 
 use eyre::{eyre, Result, WrapErr};
-use json5;
-use json5format::{Json5Format,ParsedDocument};
 use libflate::gzip::{Decoder, Encoder};
 use native_dialog::{FileDialog, MessageDialog, MessageType};
 use serde_json::Value;
@@ -97,7 +95,7 @@ fn trim_file(path: &Path) -> Result<usize> {
         std::fs::read_to_string(path)
     }?;
 
-    let mut data: Value = json5::from_str(&data)?;
+    let mut data: Value = serde_json::from_str(&data)?;
 
     let trimmed =
         trim_notifications(&mut data).ok_or(eyre!("Couldn't find notifications to trim"))?;
@@ -112,20 +110,18 @@ fn trim_file(path: &Path) -> Result<usize> {
         .to_string_lossy()
         .to_string();
 
-    let output = json5::to_string(&data)?;
-    let parsed = ParsedDocument::from_str(&output, None)?;
-    let output = Json5Format::with_options(Default::default())?.to_utf8(&parsed)?;
+    let output = serde_json::to_string_pretty(&data)?;
 
     if gzip {
         let mut encoder = Encoder::new(Vec::new())?;
-        encoder.write_all(&output)?;
+        encoder.write_all(output.as_bytes())?;
         let save = encoder.finish().into_result()?;
 
         name.push_str(".Trimmed.gz");
         safe_write(path.with_file_name(name), &save)?;
     } else {
         name.push_str(".Trimmed");
-        safe_write(path.with_file_name(name), &output)?;
+        safe_write(path.with_file_name(name), output.as_bytes())?;
     };
 
     Ok(trimmed)
